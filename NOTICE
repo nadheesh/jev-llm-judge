@@ -1,0 +1,26 @@
+jev-llm-judge
+Copyright 2026 the jev-llm-judge authors
+
+This product includes material derived from WSO2 Agent Manager
+(https://github.com/wso2/agent-manager), Copyright (c) 2026 WSO2 LLC.,
+licensed under the Apache License, Version 2.0.
+
+Specifically:
+
+  * The evaluator instructions and the five-level scoring rubrics in
+    judge_common.py (HELPFULNESS, CLARITY, COMPLETENESS) are copied, with
+    minor edits noted in the source, from
+    libs/amp-evaluation/src/amp_evaluation/evaluators/builtin/llm_judge.py
+
+  * The output-format block in llm_judge.py (OUTPUT_INSTRUCTIONS) is copied
+    from LLMAsJudgeEvaluator._OUTPUT_INSTRUCTIONS in
+    libs/amp-evaluation/src/amp_evaluation/evaluators/base.py
+
+  * data/sample_traces.json and data/sample_dataset.json are unmodified
+    copies of libs/amp-evaluation/samples/data/
+
+The EvalResult and Trace shapes in judge_common.py are reimplementations of
+that library's public contract, written to interoperate with it.
+
+Jev and the typesafe-sdk package are products of TypeSafe AI and are not
+affiliated with this project.

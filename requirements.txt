@@ -1,0 +1,5 @@
+# jev_judge.py
+typesafe-sdk>=0.7.2
+
+# llm_judge.py, and jev_judge.py --compare
+openai>=1.0
