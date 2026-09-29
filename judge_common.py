@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -34,9 +35,49 @@ from typing import Any, Dict, List, Optional, Sequence
 
 # Unmodified copies of amp-evaluation's own sample data, vendored under data/
 # so a clone runs offline and every run scores the same bytes. See NOTICE.
+def _load_dotenv() -> None:
+    """Read a sibling .env into os.environ, without taking a dependency.
+
+    Both scripts authenticate from environment variables. Loading the file here
+    means `python jev_judge.py` works straight after `cp .env.example .env`,
+    with no `set -a` dance and no python-dotenv. Real environment variables
+    always win, so an export still overrides the file.
+    """
+    env_file = Path(__file__).parent / ".env"
+    if not env_file.exists():
+        return
+    for line in env_file.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key, value = key.strip(), value.strip().strip("\"'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+_load_dotenv()
+
+
 DATA_DIR = Path(__file__).parent / "data"
 SAMPLE_TRACES = DATA_DIR / "sample_traces.json"
 SAMPLE_DATASET = DATA_DIR / "sample_dataset.json"
+
+@dataclass
+class ToolCall:
+    """The content half of amp_evaluation.trace.models.ToolSpan."""
+
+    name: str
+    arguments: str = ""
+    result: str = ""
+    error: str = ""
+
+    def __str__(self) -> str:
+        """ToolSpan.__str__, which is what amp puts in an evaluation prompt."""
+        if self.error:
+            return f"Tool '{self.name}': FAILED ({self.error})"
+        return f"Tool '{self.name}': {self.result[:500] if self.result else '(no result)'}"
+
 
 @dataclass
 class Trace:
@@ -46,6 +87,27 @@ class Trace:
     input: str
     output: str
     start_time: Optional[str] = None
+    tool_calls: List["ToolCall"] = field(default_factory=list)
+
+    def format_evidence(self) -> str:
+        """Trace.format_evidence(): what groundedness checks claims against."""
+        if not self.tool_calls:
+            return "(no evidence available)"
+        lines = "\n".join(f"  {t}" for t in self.tool_calls[:10])
+        return f"Tool Results:\n{lines}"
+
+    def format_steps(self) -> str:
+        """AgentTrace.format_steps(): the trajectory path_efficiency scores."""
+        if not self.tool_calls:
+            return "  (no steps recorded)"
+        return "\n".join(
+            f"  Step {i + 1}: Tool '{t.name}'({t.arguments[:160]})"
+            f"{f' FAILED ({t.error})' if t.error else ' -> ok'}"
+            for i, t in enumerate(self.tool_calls)
+        )
+
+    def has_evidence(self) -> bool:
+        return bool(self.tool_calls)
 
 
 @dataclass
@@ -89,9 +151,16 @@ class EvalResult:
 
 # ---------------------------------------------------------------------------
 # The rubrics. instructions + rubric are lifted from amp-evaluation's
-# builtin/llm_judge.py build_prompt() methods. The only edit is the framing
-# sentence that inlines the trace text: llm_judge.py puts that text back into
-# the prompt, jev_judge.py passes it as state, so it is not stored here.
+# builtin/llm_judge.py build_prompt() methods. All 25 rubric levels and all but
+# one evaluation step are verbatim. Two deviations, both forced by the fact that
+# Jev takes named state instead of one prompt string:
+#
+#   * The framing sentence that inlines the trace text is dropped. llm_judge.py
+#     puts that text back into the prompt; jev_judge.py passes it as state.
+#   * Groundedness step 2 reads "the evidence" where amp reads "the evidence
+#     above", since the evidence is a named field rather than text further up.
+#
+# Both judges here read the same strings, so neither deviation favours one.
 # ---------------------------------------------------------------------------
 
 
@@ -104,6 +173,16 @@ class JudgeSpec:
     instructions: str
     rubric: Sequence[str]
     uses_success_criteria: bool = False
+    # What the judge is shown beyond the query and the response. amp encodes
+    # this by which trace accessors each build_prompt() reaches for.
+    needs_evidence: bool = False
+    needs_trajectory: bool = False
+    # amp's LLMAsJudgeEvaluator._requires_response_output. Judges that score the
+    # trajectory rather than the reply still run when the reply is empty.
+    requires_response_output: bool = True
+    # amp's GroundednessEvaluator.evaluate() skips when there is nothing to
+    # check claims against, rather than scoring a blank zero.
+    skip_without_evidence: bool = False
 
     def instructions_for(self, task: Optional[Task] = None) -> str:
         """amp appends the dataset's success_criteria when running an experiment."""
@@ -204,7 +283,76 @@ COMPLETENESS = JudgeSpec(
     uses_success_criteria=True,
 )
 
-JUDGES: Dict[str, JudgeSpec] = {j.name: j for j in (HELPFULNESS, CLARITY, COMPLETENESS)}
+GROUNDEDNESS = JudgeSpec(
+    name="groundedness",
+    description=(
+        "Verifies that factual claims in the response are grounded in tool results or "
+        "retrieved documents. Skips when no evidence is available."
+    ),
+    instructions=(
+        "You are an expert evaluator. Your sole criterion is GROUNDEDNESS: are the factual "
+        "claims in `agent_response` grounded in `evidence`, which is what was actually "
+        "available to the agent?\n\n"
+        "Evaluation Steps:\n"
+        "1. Identify each factual claim in the response (specific facts, numbers, references, "
+        "or assertions presented as true).\n"
+        "2. For each claim, check whether the evidence directly supports it.\n"
+        "3. Classify each claim as: SUPPORTED (evidence backs it), UNSUPPORTED (no relevant "
+        "evidence found), or CONTRADICTED (evidence disagrees).\n"
+        "4. Score based on the proportion of supported claims. Penalize contradictions more "
+        "heavily than unsupported claims.\n\n"
+        "Do NOT penalize opinions, hedged statements, or general knowledge that does not need "
+        "source evidence. Only assess specific factual claims."
+    ),
+    rubric=[
+        "Most claims are fabricated or contradict the available evidence",
+        "Many claims lack support; one or more are contradicted by evidence",
+        "Mixed: some claims are supported, others are not; no major contradictions",
+        "Most claims are supported by evidence; only minor unsupported details",
+        "Every factual claim is grounded in the provided evidence",
+    ],
+    needs_evidence=True,
+    skip_without_evidence=True,
+)
+
+PATH_EFFICIENCY = JudgeSpec(
+    name="path_efficiency",
+    description=(
+        "Scores whether the agent's execution path is efficient. "
+        "Detects redundant steps, loops, and wasted work."
+    ),
+    instructions=(
+        "You are an expert evaluator. Your sole criterion is PATH EFFICIENCY: does the agent "
+        "achieve its goal without unnecessary steps, redundancy, or wasted work? Judge "
+        "`execution_steps` against the goal in `user_query`.\n\n"
+        "Evaluation Steps:\n"
+        "1. Check for redundant steps: is the same tool called with the same or very similar "
+        "arguments multiple times? Is the same information retrieved or computed more than "
+        "once?\n"
+        "2. Check for loops: does the agent repeat the same sequence of actions without making "
+        "progress?\n"
+        "3. Check for irrelevant steps: are there tool calls or reasoning steps that do not "
+        "contribute to the goal at all?\n"
+        "4. Assess overall efficiency: could the same result have been achieved with noticeably "
+        "fewer steps?"
+    ),
+    rubric=[
+        "Highly inefficient; stuck in loops, significant redundancy, or many irrelevant steps",
+        "Several unnecessary steps, repeated actions, or clearly suboptimal tool usage",
+        "Moderately efficient; some unnecessary steps but generally making progress toward the "
+        "goal",
+        "Mostly efficient; at most one or two minor redundancies",
+        "Optimally efficient; every step is necessary and no obviously shorter path was "
+        "available",
+    ],
+    needs_trajectory=True,
+    requires_response_output=False,
+)
+
+JUDGES: Dict[str, JudgeSpec] = {
+    j.name: j
+    for j in (HELPFULNESS, CLARITY, COMPLETENESS, GROUNDEDNESS, PATH_EFFICIENCY)
+}
 
 # The numeric labels amp prints beside each rubric level.
 RUBRIC_LABELS = ("0.0 ", "0.25", "0.5 ", "0.75", "1.0 ")
@@ -215,9 +363,37 @@ RUBRIC_LABELS = ("0.0 ", "0.25", "0.5 ", "0.75", "1.0 ")
 # ---------------------------------------------------------------------------
 
 
-def build_state(trace: Trace) -> Dict[str, str]:
-    """The two fields every judge is shown, whole and untruncated."""
-    return {"user_query": trace.input, "agent_response": trace.output}
+def build_state(trace: Trace, judges: Sequence[JudgeSpec]) -> Dict[str, str]:
+    """What this set of judges is shown, whole and untruncated.
+
+    Only the fields the selected judges actually read are included, because in
+    amp each build_prompt() decides for itself what to reach for: helpfulness
+    never sees the trajectory, and groundedness is the only one given evidence.
+    Handing every judge everything would quietly change what they score.
+    """
+    state = {"user_query": trace.input, "agent_response": trace.output}
+    if any(j.needs_evidence for j in judges):
+        state["evidence"] = trace.format_evidence()
+    if any(j.needs_trajectory for j in judges):
+        state["execution_steps"] = trace.format_steps()
+        state["total_steps"] = str(len(trace.tool_calls))
+    return state
+
+
+def state_key(judge: JudgeSpec) -> tuple:
+    """Judges sharing a key see identical state, so they can share one call."""
+    return (judge.needs_evidence, judge.needs_trajectory)
+
+
+def preflight(trace: Trace, judge: JudgeSpec) -> Optional[EvalResult]:
+    """amp's per-evaluator guards, applied before any model is called."""
+    if judge.requires_response_output and not trace.output.strip():
+        # _requires_response_output: scoring a blank response is misleading.
+        return EvalResult.skip("Trace has no response output")
+    if judge.skip_without_evidence and not trace.has_evidence():
+        # GroundednessEvaluator.evaluate(): nothing to check claims against.
+        return EvalResult.skip("No tool or retrieval spans found in this trace")
+    return None
 
 
 def skip_all(judges: Sequence[JudgeSpec], reason: str) -> Dict[str, EvalResult]:
@@ -262,6 +438,35 @@ def _final_answer(raw: Dict[str, Any]) -> str:
     return answer.strip()
 
 
+def _tool_calls(raw: Dict[str, Any]) -> List[ToolCall]:
+    """Every tool execution in the trace, in span order.
+
+    Traceloop marks these with span kind "tool". The LangGraph plumbing spans
+    around them (tools.task, tools_condition.task, handle_tool_error.task) are
+    control flow, not tool calls, and are deliberately left out: counting them
+    would inflate the step count that path_efficiency scores.
+    """
+    calls = []
+    for span in raw.get("spans", []):
+        attrs = span.get("attributes", {})
+        if attrs.get("traceloop.span.kind") != "tool":
+            continue
+        arguments = attrs.get("traceloop.entity.input", "")
+        try:
+            arguments = json.loads(arguments).get("input_str", arguments)
+        except (ValueError, TypeError, AttributeError):
+            pass
+        calls.append(
+            ToolCall(
+                name=attrs.get("traceloop.entity.name") or span.get("name", "").removesuffix(".tool"),
+                arguments=str(arguments),
+                result=str(attrs.get("traceloop.entity.output", "")),
+                error=attrs.get("error.type", "") if span.get("status") == "Error" else "",
+            )
+        )
+    return calls
+
+
 def load_traces(path: Optional[Path] = None) -> List[Trace]:
     source = path or SAMPLE_TRACES
     payload = json.loads(source.read_text())
@@ -275,6 +480,7 @@ def load_traces(path: Optional[Path] = None) -> List[Trace]:
                 input=query,
                 output=answer,
                 start_time=raw.get("startTime"),
+                tool_calls=_tool_calls(raw),
             )
         )
     return traces
@@ -372,13 +578,14 @@ def cell(result: EvalResult) -> str:
 
 
 def print_table(rows: List[Dict[str, Any]], judges: Sequence[JudgeSpec]) -> None:
-    header = f"{'trace':<14}" + "".join(f"{j.name:>16}" for j in judges)
+    width = max(16, max(len(j.name) for j in judges) + 2)
+    header = f"{'trace':<14}" + "".join(f"{j.name:>{width}}" for j in judges)
     print(header)
     print("-" * len(header))
     for row in rows:
         line = f"{row['trace_id'][:12]:<14}"
         for judge in judges:
-            line += f"{cell(row['results'][judge.name]):>16}"
+            line += f"{cell(row['results'][judge.name]):>{width}}"
         note = INTERESTING_TRACES.get(row["trace_id"])
         print(line + (f"   {note}" if note else ""))
 

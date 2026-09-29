@@ -8,9 +8,13 @@ licensed under the Apache License, Version 2.0.
 Specifically:
 
   * The evaluator instructions and the five-level scoring rubrics in
-    judge_common.py (HELPFULNESS, CLARITY, COMPLETENESS) are copied, with
-    minor edits noted in the source, from
-    libs/amp-evaluation/src/amp_evaluation/evaluators/builtin/llm_judge.py
+    judge_common.py (HELPFULNESS, CLARITY, COMPLETENESS, GROUNDEDNESS,
+    PATH_EFFICIENCY) are copied, with two minor edits noted in the source,
+    from libs/amp-evaluation/src/amp_evaluation/evaluators/builtin/llm_judge.py
+
+  * The evidence and execution-step rendering in judge_common.py
+    (Trace.format_evidence, Trace.format_steps, ToolCall.__str__) follows
+    libs/amp-evaluation/src/amp_evaluation/trace/models.py
 
   * The output-format block in llm_judge.py (OUTPUT_INSTRUCTIONS) is copied
     from LLMAsJudgeEvaluator._OUTPUT_INSTRUCTIONS in

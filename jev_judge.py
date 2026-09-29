@@ -8,8 +8,8 @@ model) produce the same scores?
 
 What changes against `llm_judge.py`:
   - An LLM judge inlines the trace into a prompt and parses JSON back. Jev takes
-    one `state` and a *map* of questions, so all three judges score a trace in a
-    single call instead of three.
+    one `state` and a *map* of questions, so judges reading the same state share
+    one call. All five score a trace in three calls instead of five.
   - Each amp rubric is five levels, so it becomes a Score question whose five
     criteria are the five level descriptions. Jev returns a probability-weighted
     level in 0..4; divided by 4 that is amp's 0.0-1.0 score.
@@ -68,27 +68,38 @@ def score_trace(
     judges: Sequence[JudgeSpec],
     task: Optional[Task] = None,
 ) -> Dict[str, EvalResult]:
-    """One Jev call, every judge scored. Returns results keyed by judge name."""
-    if not trace.output.strip():
-        # amp's _requires_response_output: scoring a blank response is misleading.
-        return jc.skip_all(judges, "Trace has no response output")
+    """Score every judge, batching those that read the same state into one call.
 
-    try:
-        response = client.system_one(
-            state=jc.build_state(trace),
-            questions={j.name: build_question(j, task) for j in judges},
-        )
-    except Exception as exc:  # noqa: BLE001 - surface as a skip, like amp does
-        return jc.skip_all(judges, f"Jev call failed: {exc}")
-
+    All five judges over one trace cost three calls, not five: the three that
+    read only the query and the response go together, and groundedness and
+    path_efficiency each need a field of their own. The LLM baseline needs five.
+    """
     results: Dict[str, EvalResult] = {}
+    groups: Dict[tuple, List[JudgeSpec]] = {}
     for judge in judges:
-        answer = response.scores.get(judge.name)
-        if answer is None:
-            results[judge.name] = EvalResult.skip("Jev returned no answer for this question")
+        skipped = jc.preflight(trace, judge)
+        if skipped is not None:
+            results[judge.name] = skipped
         else:
-            results[judge.name] = to_result(judge, answer)
-    return results
+            groups.setdefault(jc.state_key(judge), []).append(judge)
+
+    for group in groups.values():
+        try:
+            response = client.system_one(
+                state=jc.build_state(trace, group),
+                questions={j.name: build_question(j, task) for j in group},
+            )
+        except Exception as exc:  # noqa: BLE001 - surface as a skip, like amp does
+            results.update(jc.skip_all(group, f"Jev call failed: {exc}"))
+            continue
+        for judge in group:
+            answer = response.scores.get(judge.name)
+            results[judge.name] = (
+                to_result(judge, answer)
+                if answer is not None
+                else EvalResult.skip("Jev returned no answer for this question")
+            )
+    return {j.name: results[j.name] for j in judges}
 
 
 # ---------------------------------------------------------------------------

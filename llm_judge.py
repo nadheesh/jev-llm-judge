@@ -7,8 +7,8 @@ This is the baseline. It rebuilds the prompt that
 inlined, the numbered rubric, then amp's own output-format block), sends it to
 a chat model, and parses the {"explanation", "score"} JSON back out.
 
-One prompt per evaluator per trace, which is amp's own shape: three judges
-over the five curated traces is fifteen round trips.
+One prompt per evaluator per trace, which is amp's own shape: five evaluators
+over the five curated traces is twenty-five round trips.
 
 Run `jev_judge.py` for the same rubrics on Jev, or `jev_judge.py --compare`
 to see both side by side.
@@ -46,14 +46,22 @@ First provide your reasoning, then your score. Respond with a JSON object:
 
 def build_prompt(judge: JudgeSpec, trace: Trace, task: Optional[Task] = None) -> str:
     """Reassemble amp's build_prompt(): instructions, trace text, rubric, format."""
-    state = jc.build_state(trace)
     rubric = "\n".join(
         f"  {label} = {text}" for label, text in zip(jc.RUBRIC_LABELS, judge.rubric)
     )
+    context = ""
+    if judge.needs_evidence:
+        context += f"\nEvidence Available to the Agent:\n{trace.format_evidence()}\n"
+    if judge.needs_trajectory:
+        context += (
+            f"\nTotal Steps: {len(trace.tool_calls)}\n"
+            f"Execution Steps:\n{trace.format_steps()}\n"
+        )
     return (
         f"{judge.instructions_for(task)}\n\n"
-        f"User Query: {state['user_query']}\n"
-        f"Agent Response: {state['agent_response']}\n\n"
+        f"User Query: {trace.input}\n"
+        f"Agent Response: {trace.output}\n"
+        f"{context}\n"
         f"Scoring Rubric:\n{rubric}"
         f"{OUTPUT_INSTRUCTIONS}"
     )
@@ -66,10 +74,6 @@ def score_trace(
     model: str = DEFAULT_MODEL,
 ) -> Dict[str, EvalResult]:
     """One chat completion per judge. Returns results keyed by judge name."""
-    if not trace.output.strip():
-        # amp's _requires_response_output: scoring a blank response is misleading.
-        return jc.skip_all(judges, "Trace has no response output")
-
     try:
         from openai import OpenAI
     except ImportError:
@@ -78,6 +82,10 @@ def score_trace(
     client = OpenAI()
     results: Dict[str, EvalResult] = {}
     for judge in judges:
+        skipped = jc.preflight(trace, judge)
+        if skipped is not None:
+            results[judge.name] = skipped
+            continue
         try:
             completion = client.chat.completions.create(
                 model=model,

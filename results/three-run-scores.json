@@ -1,1 +1,252 @@
-{"jev|fc5513186f8d0b0d0b488f47548e6028|helpfulness": [0.69, 0.6975, 0.7025], "jev|fc5513186f8d0b0d0b488f47548e6028|clarity": [0.8775, 0.8875, 0.8825], "jev|fc5513186f8d0b0d0b488f47548e6028|completeness": [0.915, 0.91, 0.91], "jev|789a4cc3a165ed330d3244aca8b61dbb|helpfulness": [0.5025, 0.5025, 0.4925], "jev|789a4cc3a165ed330d3244aca8b61dbb|clarity": [0.83, 0.83, 0.825], "jev|789a4cc3a165ed330d3244aca8b61dbb|completeness": [0.7575, 0.78, 0.7725], "jev|7ec82d8703e40682c0850b9b02aeae03|helpfulness": [0.1825, 0.1875, 0.18], "jev|7ec82d8703e40682c0850b9b02aeae03|clarity": [0.835, 0.835, 0.835], "jev|7ec82d8703e40682c0850b9b02aeae03|completeness": [0.0375, 0.04, 0.0325], "jev|3c6c9d5f6890ef25bdf9694a80be921b|helpfulness": [0.65, 0.6475, 0.6625], "jev|3c6c9d5f6890ef25bdf9694a80be921b|clarity": [0.985, 0.985, 0.9825], "jev|3c6c9d5f6890ef25bdf9694a80be921b|completeness": [0.83, 0.8225, 0.8275], "jev|59ab6f6cea2ca1e11e24ca140e98f2c7|helpfulness": [0.455, 0.45, 0.4475], "jev|59ab6f6cea2ca1e11e24ca140e98f2c7|clarity": [0.83, 0.84, 0.8325], "jev|59ab6f6cea2ca1e11e24ca140e98f2c7|completeness": [0.3475, 0.3375, 0.345], "llm|fc5513186f8d0b0d0b488f47548e6028|helpfulness": [1.0, 1.0, 1.0], "llm|fc5513186f8d0b0d0b488f47548e6028|clarity": [1.0, 1.0, 1.0], "llm|fc5513186f8d0b0d0b488f47548e6028|completeness": [0.75, 0.75, 0.75], "llm|789a4cc3a165ed330d3244aca8b61dbb|helpfulness": [0.75, 1.0, 0.75], "llm|789a4cc3a165ed330d3244aca8b61dbb|clarity": [0.75, 0.75, 1.0], "llm|789a4cc3a165ed330d3244aca8b61dbb|completeness": [1.0, 0.75, 1.0], "llm|7ec82d8703e40682c0850b9b02aeae03|helpfulness": [0.25, 0.0, 0.0], "llm|7ec82d8703e40682c0850b9b02aeae03|clarity": [0.5, 0.5, 0.5], "llm|7ec82d8703e40682c0850b9b02aeae03|completeness": [0.0, 0.0, 0.0], "llm|3c6c9d5f6890ef25bdf9694a80be921b|helpfulness": [1.0, 1.0, 1.0], "llm|3c6c9d5f6890ef25bdf9694a80be921b|clarity": [1.0, 1.0, 1.0], "llm|3c6c9d5f6890ef25bdf9694a80be921b|completeness": [1.0, 1.0, 0.25], "llm|59ab6f6cea2ca1e11e24ca140e98f2c7|helpfulness": [0.5, 0.5, 0.5], "llm|59ab6f6cea2ca1e11e24ca140e98f2c7|clarity": [0.75, 0.75, 0.75], "llm|59ab6f6cea2ca1e11e24ca140e98f2c7|completeness": [0.5, 0.5, 0.5]}
+{
+ "jev|fc5513186f8d0b0d0b488f47548e6028|helpfulness": [
+  0.695,
+  0.69,
+  0.6925
+ ],
+ "jev|fc5513186f8d0b0d0b488f47548e6028|clarity": [
+  0.885,
+  0.89,
+  0.885
+ ],
+ "jev|fc5513186f8d0b0d0b488f47548e6028|completeness": [
+  0.915,
+  0.9225,
+  0.91
+ ],
+ "jev|fc5513186f8d0b0d0b488f47548e6028|groundedness": [
+  0.21,
+  0.21,
+  0.215
+ ],
+ "jev|fc5513186f8d0b0d0b488f47548e6028|path_efficiency": [
+  0.73,
+  0.74,
+  0.7375
+ ],
+ "jev|789a4cc3a165ed330d3244aca8b61dbb|helpfulness": [
+  0.4925,
+  0.5025,
+  0.5025
+ ],
+ "jev|789a4cc3a165ed330d3244aca8b61dbb|clarity": [
+  0.8275,
+  0.8275,
+  0.83
+ ],
+ "jev|789a4cc3a165ed330d3244aca8b61dbb|completeness": [
+  0.745,
+  0.7575,
+  0.775
+ ],
+ "jev|789a4cc3a165ed330d3244aca8b61dbb|groundedness": [
+  0.3675,
+  0.35,
+  0.3875
+ ],
+ "jev|789a4cc3a165ed330d3244aca8b61dbb|path_efficiency": [
+  0.35,
+  0.3225,
+  0.34
+ ],
+ "jev|7ec82d8703e40682c0850b9b02aeae03|helpfulness": [
+  0.1775,
+  0.1825,
+  0.18
+ ],
+ "jev|7ec82d8703e40682c0850b9b02aeae03|clarity": [
+  0.83,
+  0.8375,
+  0.83
+ ],
+ "jev|7ec82d8703e40682c0850b9b02aeae03|completeness": [
+  0.035,
+  0.0425,
+  0.035
+ ],
+ "jev|7ec82d8703e40682c0850b9b02aeae03|groundedness": [
+  0.85,
+  0.8425,
+  0.8575
+ ],
+ "jev|7ec82d8703e40682c0850b9b02aeae03|path_efficiency": [
+  0.78,
+  0.8175,
+  0.805
+ ],
+ "jev|3c6c9d5f6890ef25bdf9694a80be921b|helpfulness": [
+  0.6525,
+  0.66,
+  0.6475
+ ],
+ "jev|3c6c9d5f6890ef25bdf9694a80be921b|clarity": [
+  0.9875,
+  0.9825,
+  0.9825
+ ],
+ "jev|3c6c9d5f6890ef25bdf9694a80be921b|completeness": [
+  0.85,
+  0.835,
+  0.8225
+ ],
+ "jev|3c6c9d5f6890ef25bdf9694a80be921b|groundedness": [
+  null,
+  null,
+  null
+ ],
+ "jev|3c6c9d5f6890ef25bdf9694a80be921b|path_efficiency": [
+  0.9975,
+  0.995,
+  0.9975
+ ],
+ "jev|59ab6f6cea2ca1e11e24ca140e98f2c7|helpfulness": [
+  0.455,
+  0.445,
+  0.455
+ ],
+ "jev|59ab6f6cea2ca1e11e24ca140e98f2c7|clarity": [
+  0.8275,
+  0.835,
+  0.8375
+ ],
+ "jev|59ab6f6cea2ca1e11e24ca140e98f2c7|completeness": [
+  0.3325,
+  0.3375,
+  0.3325
+ ],
+ "jev|59ab6f6cea2ca1e11e24ca140e98f2c7|groundedness": [
+  null,
+  null,
+  null
+ ],
+ "jev|59ab6f6cea2ca1e11e24ca140e98f2c7|path_efficiency": [
+  0.925,
+  0.94,
+  0.935
+ ],
+ "llm|fc5513186f8d0b0d0b488f47548e6028|helpfulness": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "llm|fc5513186f8d0b0d0b488f47548e6028|clarity": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "llm|fc5513186f8d0b0d0b488f47548e6028|completeness": [
+  0.75,
+  0.75,
+  0.75
+ ],
+ "llm|fc5513186f8d0b0d0b488f47548e6028|groundedness": [
+  0.5,
+  0.5,
+  0.5
+ ],
+ "llm|fc5513186f8d0b0d0b488f47548e6028|path_efficiency": [
+  0.5,
+  0.5,
+  0.5
+ ],
+ "llm|789a4cc3a165ed330d3244aca8b61dbb|helpfulness": [
+  0.75,
+  0.75,
+  0.75
+ ],
+ "llm|789a4cc3a165ed330d3244aca8b61dbb|clarity": [
+  1.0,
+  0.75,
+  1.0
+ ],
+ "llm|789a4cc3a165ed330d3244aca8b61dbb|completeness": [
+  1.0,
+  0.75,
+  1.0
+ ],
+ "llm|789a4cc3a165ed330d3244aca8b61dbb|groundedness": [
+  0.25,
+  0.25,
+  0.0
+ ],
+ "llm|789a4cc3a165ed330d3244aca8b61dbb|path_efficiency": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "llm|7ec82d8703e40682c0850b9b02aeae03|helpfulness": [
+  0.25,
+  0.25,
+  0.25
+ ],
+ "llm|7ec82d8703e40682c0850b9b02aeae03|clarity": [
+  0.5,
+  0.5,
+  0.5
+ ],
+ "llm|7ec82d8703e40682c0850b9b02aeae03|completeness": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "llm|7ec82d8703e40682c0850b9b02aeae03|groundedness": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "llm|7ec82d8703e40682c0850b9b02aeae03|path_efficiency": [
+  0.0,
+  0.0,
+  0.25
+ ],
+ "llm|3c6c9d5f6890ef25bdf9694a80be921b|helpfulness": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "llm|3c6c9d5f6890ef25bdf9694a80be921b|clarity": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "llm|3c6c9d5f6890ef25bdf9694a80be921b|completeness": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "llm|3c6c9d5f6890ef25bdf9694a80be921b|groundedness": [
+  null,
+  null,
+  null
+ ],
+ "llm|3c6c9d5f6890ef25bdf9694a80be921b|path_efficiency": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "llm|59ab6f6cea2ca1e11e24ca140e98f2c7|helpfulness": [
+  0.5,
+  0.5,
+  0.5
+ ],
+ "llm|59ab6f6cea2ca1e11e24ca140e98f2c7|clarity": [
+  0.75,
+  0.75,
+  0.75
+ ],
+ "llm|59ab6f6cea2ca1e11e24ca140e98f2c7|completeness": [
+  0.5,
+  0.5,
+  0.5
+ ],
+ "llm|59ab6f6cea2ca1e11e24ca140e98f2c7|groundedness": [
+  null,
+  null,
+  null
+ ],
+ "llm|59ab6f6cea2ca1e11e24ca140e98f2c7|path_efficiency": [
+  0.5,
+  0.75,
+  0.5
+ ]
+}
