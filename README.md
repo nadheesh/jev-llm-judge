@@ -16,7 +16,7 @@ Five of amp's built-in evaluators are ported: **helpfulness**, **clarity**, **co
 ## Quick start
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements.txt        # matplotlib only needed for the charts
 
 cp .env.example .env          # then paste your keys in; both scripts read it
 # or export JEV_API_KEY / OPENAI_API_KEY directly, which takes precedence
@@ -197,6 +197,41 @@ There is no equivalent on the LLM side, which returns a fluent paragraph of just
 
 A practical use: route low-confidence traces to human review instead of trusting the number.
 
+### 7. How the two judges correlate
+
+Exact agreement was never the right test: the LLM judge can only emit 0, 0.25, 0.5, 0.75 or 1.0, while Jev returns a continuous expected rubric level. Correlation asks the answerable question instead, which is whether the two rank agent behaviour the same way.
+
+![Jev against the LLM judge](results/correlation.png)
+
+**Spearman 0.60, Pearson 0.65 over 23 cells.** A real positive relationship, and nowhere near interchangeable.
+
+Three things the plot shows that the tables do not:
+
+- **The horizontal band at y = 1.0.** Nine of 23 LLM scores are exactly 1.00, spread across Jev scores from 0.65 to 1.00. The LLM judge's top grade covers a range where Jev still discriminates.
+- **Most points sit below the line**, which is Jev scoring the same behaviour lower.
+- **The three points at y = 0.0** are the LLM's floor. One of them sits at Jev 0.80: that is `path_efficiency` on the two-distinct-calls trace, the disagreement from section 2.
+
+Sorting the cells by Jev score and plotting against rank answers the other half of the question, whether the LLM preserves Jev's ordering:
+
+![Scores ordered by Jev](results/ranked.png)
+
+Jev's line is smooth by construction. The LLM's dots trend upward with it, which is the 0.60, but they step between five levels and throw off clear outliers, most visibly the pink `path_efficiency` point near rank 13 that Jev puts at 0.80 and the LLM puts at 0.00.
+
+**Read these two numbers with three caveats.** They are on the generous side, not the conservative one:
+
+1. **n = 23, and the cells are not independent.** Five traces by five evaluators. Scores within one trace move together, so the effective sample is well under 23 and no confidence interval here would be meaningful.
+2. **Pooling across evaluators inflates it.** Much of the correlation comes from evaluators having different typical levels rather than from the judges agreeing trace by trace. Per-evaluator correlation would be the honest cut, but that is n = 5 each, which is not worth computing.
+3. **Ties dominate the LLM axis.** Its 23 scores take only five distinct values, with 9 at 1.0 and 6 at 0.5. Spearman handles ties by averaging ranks, but a variable that is 39% one value carries little ranking information.
+
+The replication batch gives Spearman 0.59 and Pearson 0.66, so the figure is at least stable across measurements. Regenerate with:
+
+```bash
+python export_scores.py        # results/*.json -> results/scores.csv
+python plot_correlation.py     # csv -> correlation.png, ranked.png
+```
+
+The plotting script reads only the CSV, so every point in both charts is traceable to a row you can open in a spreadsheet.
+
 ### Cost shape
 
 Jev batches judges that read the same state into one call. All five evaluators over one trace cost **three** Jev calls (the three response-only judges together, then groundedness and path_efficiency, which each need a field of their own) against **five** LLM calls. Over the five-trace set that is 15 calls versus 25.
@@ -221,6 +256,7 @@ If the eval's job is to gate CI or track a metric over time, that is enough. If 
 Read the numbers as a demonstration, not a benchmark.
 
 - Five traces, three runs, one baseline model. Nothing here is statistically significant, and the stability figures moved noticeably between measurements.
+- The correlation figures pool five evaluators over five traces and are inflated by that pooling. Section 7 spells out why.
 - `path_efficiency` scores a trace with **zero** tool calls as near-perfect (1.00 and 0.94). Defensible, since asking a question beats guessing, but it means the score rewards inaction and should be read next to helpfulness.
 - All five traces come from one LangGraph travel agent. Other domains may behave differently.
 - The baseline is `gpt-4o-mini`. A larger judge model would likely be both better calibrated and more stable. `--compare-model` takes anything the OpenAI SDK accepts.
@@ -234,7 +270,9 @@ Read the numbers as a demonstration, not a benchmark.
 | `jev_judge.py` | rubrics as Jev `Score` questions, plus `--compare` |
 | `llm_judge.py` | the same rubrics as an LLM prompt, amp's own shape |
 | `data/` | unmodified sample traces and dataset from `amp-evaluation` |
-| `results/` | raw scores from two independent three-run stability measurements |
+| `export_scores.py` | flattens the run JSON into `results/scores.csv` |
+| `plot_correlation.py` | reads that CSV and draws the two correlation charts |
+| `results/` | raw scores from two independent three-run measurements, the tidy CSV, and the charts |
 
 The rubric text lives in exactly one place, `judge_common.py`, so a score difference is a difference between the two judges and not between two drifting copies of a prompt.
 
