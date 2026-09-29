@@ -108,6 +108,15 @@ The two judges are unstable in different ways. Jev jitters continuously and neve
 
 Worth being honest about: an earlier three-run measurement over the first three evaluators put the LLM's mean spread at 0.117 with one cell swinging 0.750. That did not recur here. The LLM's instability is itself unstable, which is the practical problem with it, but it also means neither number should be quoted as *the* figure.
 
+**Independent replication.** A second, entirely separate set of three runs is in `results/three-run-scores-replication.json`. Comparing the two sets' medians cell by cell:
+
+| | mean difference between the two 3-run sets | worst cell |
+|---|---|---|
+| Jev | **0.005** | 0.015 |
+| LLM judge | **0.033** | 0.250 |
+
+Six runs in total, and Jev's medians move by at most 0.015 between independent measurements. That is the stability claim on firmer ground than a single batch.
+
 #### Every Jev run
 
 All three runs, per trace and evaluator, so you can see the jitter rather than take the summary on trust:
@@ -225,7 +234,7 @@ Read the numbers as a demonstration, not a benchmark.
 | `jev_judge.py` | rubrics as Jev `Score` questions, plus `--compare` |
 | `llm_judge.py` | the same rubrics as an LLM prompt, amp's own shape |
 | `data/` | unmodified sample traces and dataset from `amp-evaluation` |
-| `results/` | raw scores from the three-run stability measurement |
+| `results/` | raw scores from two independent three-run stability measurements |
 
 The rubric text lives in exactly one place, `judge_common.py`, so a score difference is a difference between the two judges and not between two drifting copies of a prompt.
 
